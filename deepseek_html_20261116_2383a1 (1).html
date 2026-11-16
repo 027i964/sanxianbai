@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>三线摆实验｜投影法测H + 直径输入自动转半径</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: system-ui, 'Segoe UI', 'Noto Sans', 'Helvetica Neue', sans-serif; background: #f1f5f9; margin: 0; padding: 20px 16px 40px; color: #0f172a; }
+        .container { max-width: 950px; margin: 0 auto; }
+        .card { background: white; border-radius: 28px; padding: 20px 20px 24px; margin-bottom: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03); }
+        .card-header { font-size: 1.35rem; font-weight: 650; margin-bottom: 18px; padding-bottom: 8px; border-bottom: 3px solid #3b82f6; display: inline-block; letter-spacing: -0.2px; color: #1e293b; }
+        .card-header.purple { border-bottom-color: #9333ea; }
+        .sub-header { font-weight: 600; margin: 18px 0 10px 0; color: #2c3e66; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+        .input-group { margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+        .input-group label { width: 170px; font-weight: 500; color: #334155; font-size: 0.9rem; }
+        .input-field { flex: 1; min-width: 160px; }
+        input, select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 20px; font-size: 0.95rem; background: #fefefe; transition: 0.2s; font-family: monospace; }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+        input::placeholder { color: #aab4c2; font-size: 0.85rem; font-family: system-ui, sans-serif; }
+        .edge-grid, .time-grid, .l-grid, .diameter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 12px 0 8px; }
+        .measure-card { background: #f9fbfe; border-radius: 24px; padding: 12px 12px 14px; border: 1px solid #e2edff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .measure-card label { font-size: 0.7rem; font-weight: 600; display: block; margin-bottom: 6px; color: #475569; }
+        .measure-card input { padding: 10px 8px; font-size: 0.9rem; margin-bottom: 4px; }
+        .avg-badge { background: #eef2ff; border-radius: 28px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; margin-top: 12px; text-align: center; color: #1e3a8a; }
+        .avg-badge.green { background: #dcfce7; color: #166534; }
+        .row-buttons { display: flex; gap: 12px; margin: 20px 0 10px; flex-wrap: wrap; }
+        button.purple-btn { background: #9333ea; }
+        button { background: #3b82f6; border: none; padding: 12px 20px; border-radius: 40px; font-weight: 600; font-size: 1rem; color: white; cursor: pointer; flex: 1; transition: 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        button.reset-btn { background: #64748b; }
+        button:hover { opacity: 0.92; transform: scale(0.98); }
+        .result-area { background: #f8fafc; border-radius: 24px; padding: 18px; margin-top: 20px; border-left: 5px solid #3b82f6; }
+        .result-area.purple { border-left-color: #9333ea; background: #faf5ff; }
+        .formula-detail { background: #ffffffdd; padding: 12px; border-radius: 18px; font-size: 0.82rem; font-family: monospace; word-break: break-word; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+        .final-value { font-size: 1.3rem; font-weight: 800; color: #1e40af; margin-top: 8px; background: #eef2ff; padding: 10px 14px; border-radius: 20px; text-align: center; }
+        .error-box {
+            background: #fef9e7;
+            border: 2px solid #f39c12;
+            border-radius: 20px;
+            padding: 14px 20px;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #c0392b;
+        }
+        .error-box .label { color: #7f8c8d; font-weight: 400; font-size: 0.9rem; }
+        .warning { background: #fff7ed; border-left: 4px solid #f97316; padding: 10px 14px; border-radius: 18px; font-size: 0.75rem; margin-top: 12px; }
+        .warning-success { background: #dcfce7; border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 18px; font-size: 0.8rem; margin-top: 12px; color: #166534; }
+        .chart-container { position: relative; height: 400px; width: 100%; margin-top: 20px; background: white; border-radius: 24px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 9999; animation: fadeIn 0.3s ease; }
+        .modal-overlay.active { display: flex; }
+        @keyframes fadeIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+        .modal-box { background: rgba(180, 20, 20, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-radius: 32px; max-width: 520px; width: 92%; padding: 32px 28px 28px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); animation: slideUp 0.35s ease; max-height: 85vh; overflow-y: auto; border: 2px solid rgba(255, 80, 80, 0.7); }
+        @keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .modal-icon { text-align: center; font-size: 3.6rem; margin-bottom: 6px; }
+        .modal-title { text-align: center; font-size: 1.5rem; font-weight: 800; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); margin-bottom: 16px; }
+        .modal-body { font-size: 1.05rem; line-height: 1.7; color: #fff; padding: 0 4px; }
+        .modal-body .msg-item { padding: 10px 14px; margin-bottom: 10px; background: rgba(200, 30, 30, 0.55); border-radius: 14px; border-left: 5px solid #ff6666; font-size: 1rem; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.3); backdrop-filter: blur(2px); }
+        .modal-footer { text-align: center; margin-top: 22px; }
+        .modal-footer button { background: #dc2626; border: none; padding: 14px 44px; border-radius: 40px; font-weight: 700; font-size: 1.1rem; color: white; cursor: pointer; transition: 0.15s; box-shadow: 0 4px 16px rgba(220,38,38,0.5); width: 100%; }
+        .modal-footer button:hover { opacity: 0.92; transform: scale(0.98); }
+        .modal-note { text-align: center; font-size: 0.9rem; color: rgba(255,255,255,0.8); margin-top: 12px; padding-top: 12px; border-top: 2px dashed rgba(255,255,255,0.3); }
+        @media (max-width: 650px) { .input-group label { width: 100%; margin-bottom:4px; } .time-grid, .l-grid, .diameter-grid { grid-template-columns:1fr; } .modal-box { padding:24px 18px 20px; max-width:95%; } .chart-container { height:300px; } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="text-align:center; margin-bottom:12px;">
+        <h2 style="margin:0; color:#0f172a;">⚡ 三线摆 · 数据校验助手</h2>
+        <p style="margin:6px 0 0; color:#475569;">实验结果计算 · 数据校验 · 自动图像生成</p>
+    </div>
+
+    <!-- 几何参数 -->
+    <div class="card">
+        <div class="card-header">📐 几何参数（单位：cm，自动换算为米）</div>
+        <div class="sub-header">🔺 上盘悬点边长 a (cm，等边三角形边长)</div>
+        <div class="edge-grid" id="edgeUpperGrid"></div>
+        <div id="avgA_Display" class="avg-badge">📏 平均边长 a_avg = -- cm</div>
+        <div class="sub-header">🔻 下盘悬点边长 b (cm，等边三角形边长)</div>
+        <div class="edge-grid" id="edgeLowerGrid"></div>
+        <div id="avgB_Display" class="avg-badge">📏 平均边长 b_avg = -- cm</div>
+        <div class="sub-header" style="margin-top:20px; border-top:2px dashed #d1d5db; padding-top:16px;">
+            📏 投影法测H · 摆长 l (cm) <span style="font-weight:400; font-size:0.8rem; color:#475569;">（悬线长度，从悬挂点到下盘悬点）</span>
+        </div>
+        <div class="l-grid" id="lengthLGrid"></div>
+        <div id="avgL_Display" class="avg-badge green">📏 平均摆长 l_avg = -- cm</div>
+        <div id="computedH_Display" class="avg-badge" style="background:#dbeafe; color:#1e3a8a; margin-top:6px;">
+            📐 投影法计算 H = sqrt(L_avg² − (R − r)²) = -- cm
+        </div>
+        <div class="input-group" style="margin-top:8px;">
+            <label>🌍 重力加速度 g (m/s²) :</label>
+            <div class="input-field"><input type="number" id="gravity_g" step="any" placeholder="输入重力加速度"></div>
+        </div>
+        <div class="warning">
+            💡 <strong>投影法测H</strong>：测量5次摆长L（悬线长度），取平均 L_avg。<br>
+            几何关系：r = a_avg / √3，R = b_avg / √3，H = √(L_avg² − (R − r)²)。<br>
+            ⚠️ 所有长度输入为 cm，计算时自动转换为米 (除以100)。最终转动惯量单位 kg·m²。
+        </div>
+    </div>
+
+    <!-- 空盘 -->
+    <div class="card">
+        <div class="card-header">🟤 空盘测量数据</div>
+        <div class="input-group">
+            <label>⚖️ 空盘质量 m₀ (kg) :</label>
+            <div class="input-field"><input type="number" id="mass0" step="any" placeholder="输入空盘质量"></div>
+        </div>
+        <!-- ===== 新增：下圆盘直径5次输入 ===== -->
+        <div class="input-group" style="flex-wrap:wrap;">
+            <label style="width:100%;">📏 下圆盘直径 D_盘 (cm) — 5次测量取平均（用于理论值）:</label>
+            <div class="diameter-grid" style="grid-template-columns:repeat(5,1fr);">
+                <div class="measure-card"><label>1</label><input type="number" id="D_disc_empty_1" step="any" placeholder="第1次"></div>
+                <div class="measure-card"><label>2</label><input type="number" id="D_disc_empty_2" step="any" placeholder="第2次"></div>
+                <div class="measure-card"><label>3</label><input type="number" id="D_disc_empty_3" step="any" placeholder="第3次"></div>
+                <div class="measure-card"><label>4</label><input type="number" id="D_disc_empty_4" step="any" placeholder="第4次"></div>
+                <div class="measure-card"><label>5</label><input type="number" id="D_disc_empty_5" step="any" placeholder="第5次"></div>
+            </div>
+        </div>
+        <div id="avg_D_disc_empty_display" class="avg-badge green">📏 平均直径 D_盘_avg = -- cm</div>
+
+        <div class="input-group">
+            <label>🔁 空盘摆动周期数 N₀ (次数) :</label>
+            <div class="input-field"><input type="number" id="periodCount0" step="1" placeholder="输入周期数"></div>
+        </div>
+        <div class="sub-header">⏱️ 五组摆动总时间 (秒)</div>
+        <div class="time-grid" id="time0Grid"></div>
+        <div id="avgPeriod0Display" class="avg-badge">⏲️ 平均周期 T₀_avg = -- s</div>
+        <div style="margin-top:12px; background:#e0f2fe; border-radius:16px; padding:10px; font-size:0.9rem;">
+            <strong>📌 空盘理论值</strong>（自动根据公式 ⅛·m₀·D_盘_avg² 计算，D_盘_avg为上方测量的平均直径）将在结果中显示并与实验值对比。
+        </div>
+    </div>
+
+    <!-- 待测物体（只保留圆环，质量5次平均） -->
+    <div class="card">
+        <div class="card-header">🧪 待测物体测量数据（圆环）</div>
+        <div class="input-group" style="flex-wrap:wrap;">
+            <label style="width:100%;">⚖️ 圆环质量 m_环 (kg) — 5次测量取平均 :</label>
+            <div class="diameter-grid" style="grid-template-columns:repeat(5,1fr);">
+                <div class="measure-card"><label>1</label><input type="number" id="m_obj_1" step="any" placeholder="第1次"></div>
+                <div class="measure-card"><label>2</label><input type="number" id="m_obj_2" step="any" placeholder="第2次"></div>
+                <div class="measure-card"><label>3</label><input type="number" id="m_obj_3" step="any" placeholder="第3次"></div>
+                <div class="measure-card"><label>4</label><input type="number" id="m_obj_4" step="any" placeholder="第4次"></div>
+                <div class="measure-card"><label>5</label><input type="number" id="m_obj_5" step="any" placeholder="第5次"></div>
+            </div>
+        </div>
+        <div id="avg_m_obj_display" class="avg-badge green">📏 平均质量 m_环_avg = -- kg</div>
+
+        <div class="input-group">
+            <label>🔁 负载摆动周期数 N₁ (次数) :</label>
+            <div class="input-field"><input type="number" id="periodCount1" step="1" placeholder="输入周期数"></div>
+        </div>
+        <div class="sub-header">⏱️ 五组摆动总时间 (秒)</div>
+        <div class="time-grid" id="time1Grid"></div>
+        <div id="avgPeriod1Display" class="avg-badge">⏲️ 平均周期 T₁_avg = -- s</div>
+
+        <!-- 理论值自动计算（5次直径测量 → 自动转半径） -->
+        <hr>
+        <div class="sub-header">📐 理论转动惯量（输入直径，自动转半径，5次测量取平均）</div>
+        <div class="sub-header" style="margin-top:0;">外直径 D<sub>外</sub> (cm)</div>
+        <div class="diameter-grid" id="outerDiamGrid">
+            <div class="measure-card"><label>D<sub>外1</sub></label><input type="number" id="d1r_1" step="any" placeholder="第1次"></div>
+            <div class="measure-card"><label>D<sub>外2</sub></label><input type="number" id="d1r_2" step="any" placeholder="第2次"></div>
+            <div class="measure-card"><label>D<sub>外3</sub></label><input type="number" id="d1r_3" step="any" placeholder="第3次"></div>
+            <div class="measure-card"><label>D<sub>外4</sub></label><input type="number" id="d1r_4" step="any" placeholder="第4次"></div>
+            <div class="measure-card"><label>D<sub>外5</sub></label><input type="number" id="d1r_5" step="any" placeholder="第5次"></div>
+        </div>
+        <div id="avgR1rDisplay" class="avg-badge green">📏 平均外直径 D_外_avg = -- cm → 半径 R₁_avg = -- cm</div>
+        <div class="sub-header" style="margin-top:12px;">内直径 D<sub>内</sub> (cm)</div>
+        <div class="diameter-grid" id="innerDiamGrid">
+            <div class="measure-card"><label>D<sub>内1</sub></label><input type="number" id="d2_1" step="any" placeholder="第1次"></div>
+            <div class="measure-card"><label>D<sub>内2</sub></label><input type="number" id="d2_2" step="any" placeholder="第2次"></div>
+            <div class="measure-card"><label>D<sub>内3</sub></label><input type="number" id="d2_3" step="any" placeholder="第3次"></div>
+            <div class="measure-card"><label>D<sub>内4</sub></label><input type="number" id="d2_4" step="any" placeholder="第4次"></div>
+            <div class="measure-card"><label>D<sub>内5</sub></label><input type="number" id="d2_5" step="any" placeholder="第5次"></div>
+        </div>
+        <div id="avgR2rDisplay" class="avg-badge green">📏 平均内直径 D_内_avg = -- cm → 半径 R₂_avg = -- cm</div>
+
+        <div class="warning">
+            💡 <strong>输入说明：</strong>输入直径为游标卡尺测得的数值（cm），程序自动除以2得到半径。<br>
+            理论公式（使用平均半径）：<strong>J = ½ · m_环_avg · (R₁_avg² + R₂_avg²)</strong><br>
+            （长度自动换算为米）
+        </div>
+    </div>
+
+    <!-- ================= 平行轴定理验证（5次平均，自动理论值） ================= -->
+    <div class="card">
+        <div class="card-header purple">🟣 平行轴定理验证｜5组偏移数据+自动绘图</div>
+        <div class="warning-success">
+            <strong>实验操作说明：</strong><br>
+            1.【中心共轴】两根圆柱重叠在圆心，理论值 \( J_{\text{单}} = \frac{1}{4} m_{\text{柱}} D_{\text{柱}}^2 \)（单根），两根总理论基准 \( J_c = 2J_{\text{单}} \) 自动计算。<br>
+            2.【平行偏移组】输入下圆盘直径D盘（5次取平均），偏移距离 d = (D盘 − 2×D槽) / 2，单位cm。<br>
+            3. 绘图时横坐标为 d² (cm²)，纵坐标为转动惯量 I (kg·m²)，蓝色（实验值）和红色（理论值）曲线；<br>
+            💡 长度读数统一输入cm，程序自动换算米；质量单位kg、时间单位s。
+        </div>
+        <div class="sub-header">⚙️ 圆柱固定基础参数（5次测量取平均）</div>
+        <!-- 圆柱质量 5次 -->
+        <div class="input-group" style="flex-wrap:wrap;">
+            <label style="width:100%;">⚖️ 单个圆柱质量 m_柱 (kg) :</label>
+            <div class="diameter-grid" style="grid-template-columns:repeat(5,1fr);">
+                <div class="measure-card"><label>1</label><input type="number" id="m_cyl_1" step="any" placeholder="第1次"></div>
+                <div class="measure-card"><label>2</label><input type="number" id="m_cyl_2" step="any" placeholder="第2次"></div>
+                <div class="measure-card"><label>3</label><input type="number" id="m_cyl_3" step="any" placeholder="第3次"></div>
+                <div class="measure-card"><label>4</label><input type="number" id="m_cyl_4" step="any" placeholder="第4次"></div>
+                <div class="measure-card"><label>5</label><input type="number" id="m_cyl_5" step="any" placeholder="第5次"></div>
+            </div>
+        </div>
+        <div id="avg_m_cyl_display" class="avg-badge green">📏 平均质量 m_柱_avg = -- kg</div>
+
+        <!-- 圆柱直径 5次 -->
+        <div class="input-group" style="flex-wrap:wrap; margin-top:12px;">
+            <label style="width:100%;">📏 圆柱直径 D<sub>柱</sub> (cm) :</label>
+            <div class="diameter-grid" style="grid-template-columns:repeat(5,1fr);">
+                <div class="measure-card"><label>1</label><input type="number" id="d_cyl_1" step="any" placeholder="第1次"></div>
+                <div class="measure-card"><label>2</label><input type="number" id="d_cyl_2" step="any" placeholder="第2次"></div>
+                <div class="measure-card"><label>3</label><input type="number" id="d_cyl_3" step="any" placeholder="第3次"></div>
+                <div class="measure-card"><label>4</label><input type="number" id="d_cyl_4" step="any" placeholder="第4次"></div>
+                <div class="measure-card"><label>5</label><input type="number" id="d_cyl_5" step="any" placeholder="第5次"></div>
+            </div>
+        </div>
+        <div id="avg_d_cyl_display" class="avg-badge green">📏 平均直径 D_柱_avg = -- cm</div>
+
+        <!-- 下圆盘直径 5次（用于偏移距离） -->
+        <div class="input-group" style="flex-wrap:wrap; margin-top:12px;">
+            <label style="width:100%;">📏 下圆盘直径 D盘 (cm) — 用于偏移距离计算 :</label>
+            <div class="diameter-grid" style="grid-template-columns:repeat(5,1fr);">
+                <div class="measure-card"><label>1</label><input type="number" id="D_disc_1" step="any" placeholder="第1次"></div>
+                <div class="measure-card"><label>2</label><input type="number" id="D_disc_2" step="any" placeholder="第2次"></div>
+                <div class="measure-card"><label>3</label><input type="number" id="D_disc_3" step="any" placeholder="第3次"></div>
+                <div class="measure-card"><label>4</label><input type="number" id="D_disc_4" step="any" placeholder="第4次"></div>
+                <div class="measure-card"><label>5</label><input type="number" id="D_disc_5" step="any" placeholder="第5次"></div>
+            </div>
+        </div>
+        <div id="avg_D_disc_display" class="avg-badge green">📏 平均直径 D盘_avg = -- cm</div>
+
+        <hr>
+        <!-- 不再需要用户输入 t30_center，全部自动计算 -->
+        <div class="sub-header">⏱️ 中心共轴理论值（自动计算）</div>
+        <div style="background:#f3e8ff; border-radius:16px; padding:12px; margin-bottom:12px;">
+            <p style="margin:4px 0;"><strong>公式：</strong>单根圆柱 \( J_{\text{单}} = \frac{1}{4} m_{\text{柱}} D_{\text{柱}}^2 \)</p>
+            <p style="margin:4px 0;"><strong>两根总理论基准：</strong> \( J_c = 2 \cdot J_{\text{单}} = \frac{1}{2} m_{\text{柱}} D_{\text{柱}}^2 \)</p>
+            <p style="margin:4px 0; color:#1e3a8a;" id="autoJcDisplay">📌 待输入数据后自动计算</p>
+        </div>
+
+        <hr>
+        <div class="sub-header">📍 5组圆柱槽刻度D槽 + 对应30次总时间（逐行输入）</div>
+        <!-- 5组输入 -->
+        <div class="input-group"><label>第1组 D槽₁ (cm) :</label><div class="input-field"><input type="number" id="Ds_1" step="any" placeholder="第1组卡槽刻度"></div></div>
+        <div class="input-group"><label>第1组 t30x₁ (s) :</label><div class="input-field"><input type="number" id="T30x_1" step="any" placeholder="第1组30次总时间"></div></div>
+        <div class="input-group"><label>第2组 D槽₂ (cm) :</label><div class="input-field"><input type="number" id="Ds_2" step="any" placeholder="第2组卡槽刻度"></div></div>
+        <div class="input-group"><label>第2组 t30x₂ (s) :</label><div class="input-field"><input type="number" id="T30x_2" step="any" placeholder="第2组30次总时间"></div></div>
+        <div class="input-group"><label>第3组 D槽₃ (cm) :</label><div class="input-field"><input type="number" id="Ds_3" step="any" placeholder="第3组卡槽刻度"></div></div>
+        <div class="input-group"><label>第3组 t30x₃ (s) :</label><div class="input-field"><input type="number" id="T30x_3" step="any" placeholder="第3组30次总时间"></div></div>
+        <div class="input-group"><label>第4组 D槽₄ (cm) :</label><div class="input-field"><input type="number" id="Ds_4" step="any" placeholder="第4组卡槽刻度"></div></div>
+        <div class="input-group"><label>第4组 t30x₄ (s) :</label><div class="input-field"><input type="number" id="T30x_4" step="any" placeholder="第4组30次总时间"></div></div>
+        <div class="input-group"><label>第5组 D槽₅ (cm) :</label><div class="input-field"><input type="number" id="Ds_5" step="any" placeholder="第5组卡槽刻度"></div></div>
+        <div class="input-group"><label>第5组 t30x₅ (s) :</label><div class="input-field"><input type="number" id="T30x_5" step="any" placeholder="第5组30次总时间"></div></div>
+        <div id="badge_x_list" class="avg-badge">📌 每组偏移距离d 和 d²：--</div>
+        <div class="row-buttons" style="margin-top:16px;">
+            <button class="purple-btn" id="calcParallelBtn">📐 计算5组数据+绘制升序曲线</button>
+        </div>
+        <div id="parallelResultContainer"></div>
+        <div class="chart-container" id="chartContainer" style="display:none;">
+            <canvas id="chartCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- 主按钮 -->
+    <div class="row-buttons">
+        <button id="calcBtn">📐 计算转动惯量（含理论值和误差）</button>
+        <button id="resetBtn" class="reset-btn">⟳ 清空所有数据</button>
+    </div>
+
+    <!-- 结果展示 -->
+    <div class="card" style="background: #fef9e3;">
+        <div class="card-header" style="border-bottom-color: #f97316;">📊 详细计算步骤 & 最终结果</div>
+        <div id="resultContainer">
+            <div style="text-align: center; color: #64748b; padding: 20px;">请输入所有实验数据后点击「计算转动惯量」</div>
+        </div>
+    </div>
+
+    <!-- 二维码 -->
+    <div class="qrcode-section">
+        <div class="qrcode-title" style="font-weight: 600;">📱 手机扫码使用本计算器</div>
+        <div id="qrcode"></div>
+        <div class="note">
+            ⚡ 边长、摆长、直径单位cm，自动转米；周期数只需填一次，先计算五组总时间的平均值，再除以周期数得到平均周期。<br>
+            系统会智能校验数据合理性，如发现异常会弹出提示。
+        </div>
+        <div id="urlHint" style="font-size: 0.7rem; word-break: break-all; margin-top: 6px;"></div>
+    </div>
+</div>
+
+<!-- 模态弹窗（透明黑背景 + 透明深红内容框） -->
+<div class="modal-overlay" id="alertModal">
+    <div class="modal-box">
+        <div class="modal-icon">🚨</div>
+        <div class="modal-title">⚠️ 数据异常检测</div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer">
+            <button id="modalConfirmBtn">我已知晓，继续</button>
+        </div>
+        <div class="modal-note">💡 部分数据可能偏大、偏小或缺失，建议检查测量值</div>
+    </div>
+</div>
+
+<script>
+    // ========== 标准值参考（仅用于内部对比，不再弹出） ==========
+    const STANDARD = { m0: 1.059, g: 9.8, R: 9.266, r: 4.388, H: 40.344 };
+    const REL_TOLERANCE = 0.10;
+    const SQRT3 = Math.sqrt(3);
+    const CM_TO_M = 0.01;
+
+    // DOM 引用
+    const gravityGInput = document.getElementById('gravity_g');
+    const mass0Input = document.getElementById('mass0');
+    const periodCount0Input = document.getElementById('periodCount0');
+    const periodCount1Input = document.getElementById('periodCount1');
+    // 空盘D盘 5次
+    const DdiscEmptyInputs = [
+        document.getElementById('D_disc_empty_1'),
+        document.getElementById('D_disc_empty_2'),
+        document.getElementById('D_disc_empty_3'),
+        document.getElementById('D_disc_empty_4'),
+        document.getElementById('D_disc_empty_5')
+    ];
+    const avg_D_disc_empty_display = document.getElementById('avg_D_disc_empty_display');
+    // 待测物体质量5次
+    const mObjInputs = [
+        document.getElementById('m_obj_1'),
+        document.getElementById('m_obj_2'),
+        document.getElementById('m_obj_3'),
+        document.getElementById('m_obj_4'),
+        document.getElementById('m_obj_5')
+    ];
+    // 平行轴5次
+    const mCylInputs = [
+        document.getElementById('m_cyl_1'),
+        document.getElementById('m_cyl_2'),
+        document.getElementById('m_cyl_3'),
+        document.getElementById('m_cyl_4'),
+        document.getElementById('m_cyl_5')
+    ];
+    const dCylInputs = [
+        document.getElementById('d_cyl_1'),
+        document.getElementById('d_cyl_2'),
+        document.getElementById('d_cyl_3'),
+        document.getElementById('d_cyl_4'),
+        document.getElementById('d_cyl_5')
+    ];
+    const DdiscInputs = [
+        document.getElementById('D_disc_1'),
+        document.getElementById('D_disc_2'),
+        document.getElementById('D_disc_3'),
+        document.getElementById('D_disc_4'),
+        document.getElementById('D_disc_5')
+    ];
+    const avg_m_obj_display = document.getElementById('avg_m_obj_display');
+    const avg_m_cyl_display = document.getElementById('avg_m_cyl_display');
+    const avg_d_cyl_display = document.getElementById('avg_d_cyl_display');
+    const avg_D_disc_display = document.getElementById('avg_D_disc_display');
+    // 内外直径
+    const d1rInputs = [
+        document.getElementById('d1r_1'),
+        document.getElementById('d1r_2'),
+        document.getElementById('d1r_3'),
+        document.getElementById('d1r_4'),
+        document.getElementById('d1r_5')
+    ];
+    const d2Inputs = [
+        document.getElementById('d2_1'),
+        document.getElementById('d2_2'),
+        document.getElementById('d2_3'),
+        document.getElementById('d2_4'),
+        document.getElementById('d2_5')
+    ];
+    const avgR1rDisplay = document.getElementById('avgR1rDisplay');
+    const avgR2rDisplay = document.getElementById('avgR2rDisplay');
+
+    const autoJcDisplay = document.getElementById('autoJcDisplay');
+    const badgeXlist = document.getElementById('badge_x_list');
+    const parallelResultContainer = document.getElementById('parallelResultContainer');
+    const calcParallelBtn = document.getElementById('calcParallelBtn');
+    const chartContainer = document.getElementById('chartContainer');
+    const chartCanvas = document.getElementById('chartCanvas');
+    const groupInputList = [
+        { ds: document.getElementById('Ds_1'), t: document.getElementById('T30x_1') },
+        { ds: document.getElementById('Ds_2'), t: document.getElementById('T30x_2') },
+        { ds: document.getElementById('Ds_3'), t: document.getElementById('T30x_3') },
+        { ds: document.getElementById('Ds_4'), t: document.getElementById('T30x_4') },
+        { ds: document.getElementById('Ds_5'), t: document.getElementById('T30x_5') }
+    ];
+    const edgeUpperGrid = document.getElementById('edgeUpperGrid');
+    const edgeLowerGrid = document.getElementById('edgeLowerGrid');
+    const time0Grid = document.getElementById('time0Grid');
+    const time1Grid = document.getElementById('time1Grid');
+    const lengthLGrid = document.getElementById('lengthLGrid');
+    let aInputs = [], bInputs = [], time0Inputs = [], time1Inputs = [], lInputs = [];
+    const avgADisplay = document.getElementById('avgA_Display');
+    const avgBDisplay = document.getElementById('avgB_Display');
+    const avgPeriod0Display = document.getElementById('avgPeriod0Display');
+    const avgPeriod1Display = document.getElementById('avgPeriod1Display');
+    const avgLDisplay = document.getElementById('avgL_Display');
+    const computedHDisplay = document.getElementById('computedH_Display');
+    const modalOverlay = document.getElementById('alertModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    let inertiaChart = null;
+
+    // ========== 创建输入组件 ==========
+    function createEdgeGrid(container, prefix, count = 5) {
+        container.innerHTML = '';
+        const inputs = [];
+        for (let i = 1; i <= count; i++) {
+            const div = document.createElement('div');
+            div.className = 'measure-card';
+            div.innerHTML = `<label>${prefix}${i} (cm)</label><input type="number" id="${prefix}_${i}" step="any" placeholder="边长 ${i}">`;
+            container.appendChild(div);
+            const input = div.querySelector('input');
+            input.value = '';
+            inputs.push(input);
+        }
+        return inputs;
+    }
+    function createTimeGrid(container, baseName, count = 5) {
+        container.innerHTML = '';
+        const inputs = [];
+        for (let i = 1; i <= count; i++) {
+            const card = document.createElement('div');
+            card.className = 'measure-card';
+            card.innerHTML = `<label>📊 第 ${i} 组总时间 t (s)</label><input type="number" id="${baseName}_t${i}" step="any" placeholder="时间 ${i}">`;
+            container.appendChild(card);
+            const timeInput = card.querySelector(`#${baseName}_t${i}`);
+            timeInput.addEventListener('input', updateAllAverages);
+            inputs.push(timeInput);
+        }
+        return inputs;
+    }
+    function createLGrid(container, count = 5) {
+        container.innerHTML = '';
+        const inputs = [];
+        for (let i = 1; i <= count; i++) {
+            const div = document.createElement('div');
+            div.className = 'measure-card';
+            div.innerHTML = `<label>📏 摆长 L${i} (cm)</label><input type="number" id="L_${i}" step="any" placeholder="悬线长度 ${i}">`;
+            container.appendChild(div);
+            const input = div.querySelector('input');
+            input.value = '';
+            input.addEventListener('input', updateAllAverages);
+            inputs.push(input);
+        }
+        return inputs;
+    }
+
+    // 工具：计算平均值
+    function avgFromInputs(inputs) {
+        const vals = inputs.map(inp => parseFloat(inp.value)).filter(v => !isNaN(v) && v > 0);
+        if (vals.length === 0) return null;
+        return vals.reduce((a,b) => a+b, 0) / vals.length;
+    }
+
+    // 更新空盘D盘平均值
+    function updateDdiscEmptyAvg() {
+        const avg = avgFromInputs(DdiscEmptyInputs);
+        if (avg !== null) {
+            avg_D_disc_empty_display.innerHTML = `📏 平均直径 D_盘_avg = ${avg.toFixed(4)} cm`;
+        } else {
+            avg_D_disc_empty_display.innerHTML = `📏 平均直径 D_盘_avg = -- cm`;
+        }
+    }
+
+    // 更新待测物体质量平均值
+    function updateMObjAvg() {
+        const avg = avgFromInputs(mObjInputs);
+        if (avg !== null) {
+            avg_m_obj_display.innerHTML = `📏 平均质量 m_环_avg = ${avg.toFixed(4)} kg`;
+        } else {
+            avg_m_obj_display.innerHTML = `📏 平均质量 m_环_avg = -- kg`;
+        }
+    }
+
+    // 更新平行轴平均值 + 自动计算Jc
+    function updateParallelAverages() {
+        // 质量
+        const m_avg = avgFromInputs(mCylInputs);
+        if (m_avg !== null) {
+            avg_m_cyl_display.innerHTML = `📏 平均质量 m_柱_avg = ${m_avg.toFixed(4)} kg`;
+        } else {
+            avg_m_cyl_display.innerHTML = `📏 平均质量 m_柱_avg = -- kg`;
+        }
+        // 直径
+        const d_avg = avgFromInputs(dCylInputs);
+        if (d_avg !== null) {
+            avg_d_cyl_display.innerHTML = `📏 平均直径 D_柱_avg = ${d_avg.toFixed(4)} cm`;
+        } else {
+            avg_d_cyl_display.innerHTML = `📏 平均直径 D_柱_avg = -- cm`;
+        }
+        // D盘
+        const D_avg = avgFromInputs(DdiscInputs);
+        if (D_avg !== null) {
+            avg_D_disc_display.innerHTML = `📏 平均直径 D盘_avg = ${D_avg.toFixed(4)} cm`;
+        } else {
+            avg_D_disc_display.innerHTML = `📏 平均直径 D盘_avg = -- cm`;
+        }
+        // 自动计算 Jc (两根总理论基准)
+        if (m_avg !== null && d_avg !== null) {
+            const d_m = d_avg * CM_TO_M;
+            const Jc_single = 0.25 * m_avg * d_m * d_m;      // 单根
+            const Jc_total = 2 * Jc_single;                  // 两根
+            autoJcDisplay.innerHTML = `📌 Jc = 2 × (¼·m_柱·D_柱²) = ${formatNumber(Jc_total)} kg·m²`;
+        } else {
+            autoJcDisplay.innerHTML = `📌 待输入数据后自动计算`;
+        }
+        // 更新徽章
+        updateXListBadge();
+    }
+
+    // 更新环的半径平均值
+    function updateRingRadiusAverages() {
+        const d1_avg = avgFromInputs(d1rInputs);
+        const d2_avg = avgFromInputs(d2Inputs);
+        if (d1_avg !== null) {
+            const R1 = d1_avg / 2;
+            avgR1rDisplay.innerHTML = `📏 平均外直径 D_外_avg = ${d1_avg.toFixed(4)} cm → 半径 R₁_avg = ${R1.toFixed(4)} cm`;
+        } else {
+            avgR1rDisplay.innerHTML = `📏 平均外直径 D_外_avg = -- cm → 半径 R₁_avg = -- cm`;
+        }
+        if (d2_avg !== null) {
+            const R2 = d2_avg / 2;
+            avgR2rDisplay.innerHTML = `📏 平均内直径 D_内_avg = ${d2_avg.toFixed(4)} cm → 半径 R₂_avg = ${R2.toFixed(4)} cm`;
+        } else {
+            avgR2rDisplay.innerHTML = `📏 平均内直径 D_内_avg = -- cm → 半径 R₂_avg = -- cm`;
+        }
+    }
+
+    function initAllInputs() {
+        aInputs = createEdgeGrid(edgeUpperGrid, 'a', 5);
+        bInputs = createEdgeGrid(edgeLowerGrid, 'b', 5);
+        time0Inputs = createTimeGrid(time0Grid, 'empty', 5);
+        time1Inputs = createTimeGrid(time1Grid, 'load', 5);
+        lInputs = createLGrid(lengthLGrid, 5);
+        aInputs.forEach(inp => inp.addEventListener('input', updateAllAverages));
+        bInputs.forEach(inp => inp.addEventListener('input', updateAllAverages));
+        lInputs.forEach(inp => inp.addEventListener('input', updateAllAverages));
+        periodCount0Input.addEventListener('input', updateAllAverages);
+        periodCount1Input.addEventListener('input', updateAllAverages);
+        // 所有5次输入监听
+        [...DdiscEmptyInputs, ...mObjInputs, ...mCylInputs, ...dCylInputs, ...DdiscInputs, ...d1rInputs, ...d2Inputs].forEach(inp => {
+            inp.addEventListener('input', function() {
+                updateDdiscEmptyAvg();
+                updateMObjAvg();
+                updateParallelAverages();
+                updateRingRadiusAverages();
+            });
+        });
+        groupInputList.forEach(g => {
+            g.ds.addEventListener('input', updateXListBadge);
+            g.t.addEventListener('input', updateXListBadge);
+        });
+        // 初始更新
+        updateAllAverages();
+        updateDdiscEmptyAvg();
+        updateMObjAvg();
+        updateParallelAverages();
+        updateRingRadiusAverages();
+        updateXListBadge();
+    }
+
+    // ========== 徽章刷新 ==========
+    function updateXListBadge() {
+        const D_avg = avgFromInputs(DdiscInputs);
+        if (D_avg === null) {
+            badgeXlist.innerHTML = `📌 每组偏移距离d 和 d²：请先填写下圆盘直径 (5次平均)`;
+            return;
+        }
+        let items = [];
+        groupInputList.forEach((group, idx) => {
+            let Ds = parseFloat(group.ds.value);
+            if (!isNaN(Ds) && Ds > 0) {
+                let d_cm = (D_avg - 2 * Ds) / 2;
+                let d2_cm2 = d_cm * d_cm;
+                items.push(`第${idx+1}组 d=${d_cm.toFixed(4)} cm, d²=${d2_cm2.toFixed(4)} cm²`);
+            }
+        });
+        if (items.length > 0) {
+            badgeXlist.innerHTML = `📌 每组偏移距离：${items.join(' | ')}`;
+        } else {
+            badgeXlist.innerHTML = `📌 每组偏移距离d 和 d²：请填写D槽刻度`;
+        }
+    }
+
+    // ========== 工具函数 ==========
+    function getValidValuesFromInputs(inputsArray) {
+        let vals = [];
+        for (let inp of inputsArray) {
+            let v = parseFloat(inp.value);
+            if (!isNaN(v) && v > 0) vals.push(v);
+        }
+        return vals;
+    }
+    function computeAverage(inputsArray) {
+        const valid = getValidValuesFromInputs(inputsArray);
+        if (valid.length === 0) return null;
+        return valid.reduce((a, b) => a + b, 0) / valid.length;
+    }
+    function computeAveragePeriodFromTotalTimes(timeInputsArray, periodCountElem) {
+        let N = parseFloat(periodCountElem.value);
+        if (isNaN(N) || N <= 0) return null;
+        let validTimes = [];
+        for (let inp of timeInputsArray) {
+            let t = parseFloat(inp.value);
+            if (!isNaN(t) && t > 0) validTimes.push(t);
+        }
+        if (validTimes.length === 0) return null;
+        const avgTime = validTimes.reduce((a, b) => a + b, 0) / validTimes.length;
+        return avgTime / N;
+    }
+    function getAverageTotalTime(timeInputsArray) {
+        let validTimes = [];
+        for (let inp of timeInputsArray) {
+            let t = parseFloat(inp.value);
+            if (!isNaN(t) && t > 0) validTimes.push(t);
+        }
+        if (validTimes.length === 0) return null;
+        return validTimes.reduce((a, b) => a + b, 0) / validTimes.length;
+    }
+
+    // ========== 模态框 ==========
+    function showModal(hints, isDanger = false) {
+        let html = '';
+        hints.forEach((msg, idx) => {
+            html += `<div class="msg-item">${idx + 1}. ${msg}</div>`;
+        });
+        modalBody.innerHTML = html;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    modalConfirmBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // ========== 数据合理性检测（只提示偏大/偏小/缺失） ==========
+    function runDataValidation() {
+        const errors = [];
+        // 读取各平均值
+        const a_avg = computeAverage(aInputs);
+        const b_avg = computeAverage(bInputs);
+        const L_avg = computeAverage(lInputs);
+        const m0 = parseFloat(mass0Input.value);
+        const m_ring_avg = avgFromInputs(mObjInputs);
+        const d_cyl_avg = avgFromInputs(dCylInputs);
+        const D_disc_avg = avgFromInputs(DdiscInputs);
+        const d_inner_avg = avgFromInputs(d2Inputs);
+        const d_outer_avg = avgFromInputs(d1rInputs);
+        const m_cyl_avg = avgFromInputs(mCylInputs);
+        const T0_avg = computeAveragePeriodFromTotalTimes(time0Inputs, periodCount0Input);
+        const T1_avg = computeAveragePeriodFromTotalTimes(time1Inputs, periodCount1Input);
+
+        // 典型值（中心值）
+        const typical = {
+            L: 40.2, a: 7.6, b: 16.0, d_inner: 9.9, d_outer: 14.9,
+            d_cyl: 3.0, D_disc: 18.9, m_ring: 0.37, m_cyl: 0.138,
+            m0: 1.059, T0: 1.32, T1: 1.30
+        };
+        const tolerance = 0.8; // 浮动范围
+
+        function checkValue(name, val, typicalVal, unit = '') {
+            // 检查是否为空或非正数
+            if (val === null || isNaN(val) || val <= 0) {
+                errors.push(`📌 ${name} 数据缺失或为负/零，请检查`);
+                return;
+            }
+            const low = typicalVal - tolerance;
+            const high = typicalVal + tolerance;
+            if (val < low) {
+                errors.push(`📌 ${name} = ${val.toFixed(3)} ${unit}，偏小`);
+            } else if (val > high) {
+                errors.push(`📌 ${name} = ${val.toFixed(3)} ${unit}，偏大`);
+            }
+        }
+
+        // 对所有关键量进行检测
+        checkValue('摆长 L_avg', L_avg, typical.L, 'cm');
+        checkValue('上盘边长 a_avg', a_avg, typical.a, 'cm');
+        checkValue('下盘边长 b_avg', b_avg, typical.b, 'cm');
+        checkValue('圆环内径 D_内_avg', d_inner_avg, typical.d_inner, 'cm');
+        checkValue('圆环外径 D_外_avg', d_outer_avg, typical.d_outer, 'cm');
+        checkValue('圆柱直径 D_柱_avg', d_cyl_avg, typical.d_cyl, 'cm');
+        checkValue('下圆盘直径 D盘_avg', D_disc_avg, typical.D_disc, 'cm');
+        checkValue('圆环质量 m_环_avg', m_ring_avg, typical.m_ring, 'kg');
+        checkValue('圆柱质量 m_柱_avg', m_cyl_avg, typical.m_cyl, 'kg');
+        checkValue('空盘质量 m₀', m0, typical.m0, 'kg');
+        checkValue('空盘平均周期 T₀_avg', T0_avg, typical.T0, 's');
+        checkValue('负载平均周期 T₁_avg', T1_avg, typical.T1, 's');
+
+        if (errors.length > 0) {
+            showModal(errors);
+        }
+    }
+
+    // ========== 更新所有平均值显示 ==========
+    function updateAllAverages() {
+        let a_avg_cm = computeAverage(aInputs);
+        avgADisplay.innerHTML = a_avg_cm !== null ? `📏 平均边长 a_avg = ${a_avg_cm.toFixed(4)} cm` : '📏 平均边长 a_avg = -- cm';
+        let b_avg_cm = computeAverage(bInputs);
+        avgBDisplay.innerHTML = b_avg_cm !== null ? `📏 平均边长 b_avg = ${b_avg_cm.toFixed(4)} cm` : '📏 平均边长 b_avg = -- cm';
+        let L_avg_cm = computeAverage(lInputs);
+        avgLDisplay.innerHTML = L_avg_cm !== null ? `📏 平均摆长 L_avg = ${L_avg_cm.toFixed(4)} cm` : '📏 平均摆长 L_avg = -- cm';
+        if (a_avg_cm !== null && b_avg_cm !== null && L_avg_cm !== null) {
+            let r_cm = a_avg_cm / SQRT3;
+            let R_cm = b_avg_cm / SQRT3;
+            let diff_cm = R_cm - r_cm;
+            let L2 = L_avg_cm * L_avg_cm;
+            let d2 = diff_cm * diff_cm;
+            if (L2 > d2) {
+                let H_cm = Math.sqrt(L2 - d2);
+                computedHDisplay.innerHTML = `📐 投影法计算 H = √(${L_avg_cm.toFixed(4)}² − ${diff_cm.toFixed(4)}²) = ${H_cm.toFixed(4)} cm`;
+            } else {
+                computedHDisplay.innerHTML = `⚠️ 投影法计算H：L_avg² ≤ (R−r)²，请检查数据！`;
+            }
+        } else {
+            computedHDisplay.innerHTML = `📐 投影法计算 H = sqrt(L_avg² − (R − r)²) = -- cm`;
+        }
+        let T0_avg = computeAveragePeriodFromTotalTimes(time0Inputs, periodCount0Input);
+        let avgTime0 = getAverageTotalTime(time0Inputs);
+        let N0 = parseFloat(periodCount0Input.value);
+        if (T0_avg !== null && avgTime0 !== null && !isNaN(N0) && N0 > 0) {
+            avgPeriod0Display.innerHTML = `⏲️ 平均总时间 = ${avgTime0.toFixed(6)} s，N₀ = ${N0} → T₀ = ${T0_avg.toFixed(6)} s`;
+        } else {
+            avgPeriod0Display.innerHTML = `⏲️ T₀_avg = -- s (需周期数>0 及至少一组总时间)`;
+        }
+        let T1_avg = computeAveragePeriodFromTotalTimes(time1Inputs, periodCount1Input);
+        let avgTime1 = getAverageTotalTime(time1Inputs);
+        let N1 = parseFloat(periodCount1Input.value);
+        if (T1_avg !== null && avgTime1 !== null && !isNaN(N1) && N1 > 0) {
+            avgPeriod1Display.innerHTML = `⏲️ 平均总时间 = ${avgTime1.toFixed(6)} s，N₁ = ${N1} → T₁ = ${T1_avg.toFixed(6)} s`;
+        } else {
+            avgPeriod1Display.innerHTML = `⏲️ T₁_avg = -- s (需周期数>0 及至少一组总时间)`;
+        }
+    }
+
+    // ========== 获取几何参数 ==========
+    function getGeometryInCm() {
+        let a_avg_cm = computeAverage(aInputs);
+        let b_avg_cm = computeAverage(bInputs);
+        let L_avg_cm = computeAverage(lInputs);
+        let g = parseFloat(gravityGInput.value);
+        if (g <= 0 || isNaN(g)) g = null;
+        let r_cm = (a_avg_cm !== null && a_avg_cm > 0) ? a_avg_cm / SQRT3 : null;
+        let R_cm = (b_avg_cm !== null && b_avg_cm > 0) ? b_avg_cm / SQRT3 : null;
+        let H_cm = null;
+        if (r_cm !== null && R_cm !== null && L_avg_cm !== null) {
+            let diff = R_cm - r_cm;
+            let L2 = L_avg_cm * L_avg_cm;
+            let d2 = diff * diff;
+            if (L2 > d2) H_cm = Math.sqrt(L2 - d2);
+        }
+        let r_m = (r_cm !== null && r_cm > 0) ? r_cm * CM_TO_M : null;
+        let R_m = (R_cm !== null && R_cm > 0) ? R_cm * CM_TO_M : null;
+        let H_m = (H_cm !== null && H_cm > 0) ? H_cm * CM_TO_M : null;
+        return { r_cm, R_cm, H_cm, r_m, R_m, H_m, g, a_avg_cm, b_avg_cm, L_avg_cm };
+    }
+
+    // ========== 转动惯量计算 ==========
+    function computeInertia(m, g, R, r, H, T) {
+        if (m <= 0 || g <= 0 || R <= 0 || r <= 0 || H <= 0 || T <= 0) return null;
+        const numerator = m * g * R * r * T * T;
+        const denominator = 4 * Math.PI * Math.PI * H;
+        return numerator / denominator;
+    }
+
+    function formatNumber(num, digits = 6) {
+        if (num === null || isNaN(num)) return '无效';
+        if (Math.abs(num) < 1e-7) return "0";
+        if (Math.abs(num) < 1e-4) return num.toExponential(5);
+        return num.toFixed(digits).replace(/\.?0+$/, '');
+    }
+
+    function generateDetailSteps(m, g, R, r, H, T, label, extraNote = "") {
+        if (m <= 0 || g <= 0 || R <= 0 || r <= 0 || H <= 0 || T <= 0) return null;
+        const T2 = T * T;
+        const numeratorRaw = m * g * R * r * T2;
+        const denominatorRaw = 4 * Math.PI * Math.PI * H;
+        const inertia = numeratorRaw / denominatorRaw;
+        return `
+            <div class="formula-detail">
+                📐 <strong>${label}</strong> : I = (m·g·R·r·T²) / (4π²·H)<br>
+                🔢 代入数值:<br>
+                &nbsp;&nbsp;m = ${formatNumber(m)} kg &nbsp;| g = ${formatNumber(g)} m/s²<br>
+                &nbsp;&nbsp;R = ${formatNumber(R)} m &nbsp;| r = ${formatNumber(r)} m &nbsp;| H = ${formatNumber(H)} m<br>
+                &nbsp;&nbsp;T = ${formatNumber(T)} s &nbsp;→ T² = ${formatNumber(T2)}<br>
+                🧮 分子 = ${formatNumber(m, 4)} × ${formatNumber(g, 4)} × ${formatNumber(R, 4)} × ${formatNumber(r, 4)} × ${formatNumber(T2)} = <strong>${formatNumber(numeratorRaw)}</strong><br>
+                🧮 分母 4π²·H = 4 × (π≈${Math.PI.toFixed(5)})² × ${formatNumber(H)} = ${formatNumber(denominatorRaw)}<br>
+                ⚖️ 最终 ${label} = <strong>${formatNumber(inertia)} kg·m²</strong>
+                ${extraNote ? `<div class="note" style="margin-top:6px;">${extraNote}</div>` : ''}
+            </div>
+            <div class="final-value">✨ ${label} = ${formatNumber(inertia)} kg·m²</div>
+        `;
+    }
+
+    // ================= 平行轴计算+绘图 =================
+    function calcParallelAxis() {
+        parallelResultContainer.innerHTML = "";
+        chartContainer.style.display = 'none';
+        const geo = getGeometryInCm();
+        const { r_m, R_m, H_m, g, a_avg_cm, b_avg_cm, L_avg_cm } = geo;
+        const m0 = parseFloat(mass0Input.value);
+        const T0_avg = computeAveragePeriodFromTotalTimes(time0Inputs, periodCount0Input);
+
+        let errList = [];
+        if (r_m === null || R_m === null) errList.push("缺少上下盘边长a、b有效数据");
+        if (H_m === null) errList.push("投影法计算H失败，检查摆长L或边长");
+        if (g === null) errList.push("重力加速度g未填写或≤0");
+        if (isNaN(m0) || m0 <= 0) errList.push("空盘质量m0无效");
+        if (T0_avg === null || T0_avg <= 0) errList.push("空盘周期T0无效");
+
+        // 读取5次平均的圆柱参数
+        const m_avg = avgFromInputs(mCylInputs);
+        const d_avg_cm = avgFromInputs(dCylInputs);
+        const D_avg = avgFromInputs(DdiscInputs);
+        if (m_avg === null) errList.push("圆柱质量m_柱至少输入一组有效值");
+        if (d_avg_cm === null) errList.push("圆柱直径D_柱至少输入一组有效值");
+        if (D_avg === null) errList.push("下圆盘直径D盘至少输入一组有效值");
+
+        const validGroups = [];
+        groupInputList.forEach((group, idx) => {
+            const Ds = parseFloat(group.ds.value);
+            const t30x = parseFloat(group.t.value);
+            if (!isNaN(Ds) && Ds > 0 && !isNaN(t30x) && t30x > 0) {
+                const d_cm = (D_avg - 2 * Ds) / 2;
+                const d_m = d_cm * CM_TO_M;
+                const d2_cm2 = d_cm * d_cm;
+                validGroups.push({ idx: idx + 1, Ds, t30x, d_cm, d_m, d2_cm2 });
+            }
+        });
+        if (validGroups.length === 0) errList.push("至少填写一组D槽与对应30次总时间");
+
+        if (errList.length > 0) {
+            let html = `<div class="warning">❌ 输入数据存在错误：<ul style="margin:4px 0;padding-left:20px;">`;
+            errList.forEach(e => html += `<li>${e}</li>`);
+            html += `</ul></div>`;
+            parallelResultContainer.innerHTML = html;
+            return;
+        }
+
+        // ---- 基础计算 ----
+        const d_m = d_avg_cm * CM_TO_M;
+        const Jc_single = 0.25 * m_avg * d_m * d_m;
+        const Jc_total = 2 * Jc_single;
+
+        const I0 = computeInertia(m0, g, R_m, r_m, H_m, T0_avg);
+
+        let results = [];
+        validGroups.forEach(grp => {
+            const m_total = m0 + 2 * m_avg;
+            const T_x = grp.t30x / 30;
+            const I_total_x = computeInertia(m_total, g, R_m, r_m, H_m, T_x);
+            const I_exp = (I_total_x !== null && I0 !== null) ? I_total_x - I0 : null;
+            const I_theory = Jc_total + 2 * m_avg * grp.d_m * grp.d_m;
+            results.push({
+                idx: grp.idx,
+                d_cm: grp.d_cm,
+                d2_cm2: grp.d2_cm2,
+                Ds: grp.Ds,
+                t30x: grp.t30x,
+                T_x: T_x,
+                I_exp: I_exp,
+                I_theory: I_theory
+            });
+        });
+
+        results.sort((a, b) => a.d_cm - b.d_cm);
+
+        // ---- 生成表格 ----
+        let html = `<div class="result-area purple" style="margin-top:16px;">`;
+        html += `<div class="sub-header" style="margin-top:0;">📊 平行轴定理验证结果</div>`;
+
+        // 中心共轴理论值
+        html += `<div style="background:#f3e8ff;border-radius:16px;padding:12px;margin-bottom:12px;">`;
+        html += `<strong>🔵 中心共轴理论基准（两根圆柱）</strong><br>`;
+        html += `Jc_single (单根) = ${formatNumber(Jc_single)} kg·m² &nbsp;| Jc_total (两根) = <strong>${formatNumber(Jc_total)}</strong> kg·m²<br>`;
+        html += `公式：Jc_total = 2 × (¼·m_柱·D_柱²) = ½·m_柱·D_柱²<br>`;
+        html += `</div>`;
+
+        html += `<div style="overflow-x:auto;margin-top:8px;">`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;background:white;border-radius:16px;overflow:hidden;">`;
+        html += `<thead style="background:#9333ea;color:white;">`;
+        html += `<tr><th style="padding:8px 6px;">组</th><th>d (cm)</th><th>d² (cm²)</th><th>D槽 (cm)</th><th>T (s)</th><th>I_exp</th><th>I_theory</th><th>偏差%</th></tr>`;
+        html += `</thead><tbody>`;
+        results.forEach(r => {
+            let pct = null;
+            if (r.I_exp !== null && r.I_theory > 0) {
+                pct = ((r.I_exp - r.I_theory) / r.I_theory) * 100;
+            }
+            const color = (pct !== null && Math.abs(pct) < 5) ? '#16a34a' : '#dc2626';
+            html += `<tr style="border-bottom:1px solid #e2e8f0;">`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.idx}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.d_cm.toFixed(4)}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.d2_cm2.toFixed(4)}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.Ds.toFixed(2)}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.T_x.toFixed(6)}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${r.I_exp !== null ? formatNumber(r.I_exp) : '无效'}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center;">${formatNumber(r.I_theory)}</td>`;
+            html += `<td style="padding:8px 6px;text-align:center; color:${color};">${pct !== null ? pct.toFixed(2) : '--'}</td>`;
+            html += `</tr>`;
+        });
+        html += `</tbody></table></div>`;
+        html += `<div style="margin-top:8px; font-size:0.85rem; color:#475569;">理论值公式：I_theory = Jc_total + 2·m_柱·d²，其中 Jc_total = ½·m_柱·D_柱²，d 为偏移距离 (m)</div>`;
+        html += `</div>`;
+        parallelResultContainer.innerHTML = html;
+
+        // ---- 绘图 ----
+        if (results.length > 1) {
+            chartContainer.style.display = 'block';
+            const xData = results.map(r => r.d2_cm2);
+            const expData = results.map(r => r.I_exp !== null ? r.I_exp : null);
+            const theoryData = results.map(r => r.I_theory);
+
+            if (inertiaChart) { inertiaChart.destroy(); inertiaChart = null; }
+            const ctx = chartCanvas.getContext('2d');
+            inertiaChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '实验值 I_exp (kg·m²)',
+                        data: xData.map((x, i) => ({ x: x, y: expData[i] })),
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#3b82f6',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointStyle: 'cross',
+                        showLine: true,
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2
+                    }, {
+                        label: '理论值 I_theory = Jc_total + 2m_柱d²',
+                        data: xData.map((x, i) => ({ x: x, y: theoryData[i] })),
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointStyle: 'cross',
+                        showLine: true,
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2,
+                        borderDash: [6, 4]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { font: { size: 13, weight: 'bold' }, padding: 16 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let val = context.parsed.y;
+                                    if (val !== null && val !== undefined) {
+                                        label += ': ' + val.toExponential(4) + ' kg·m²';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'd² (cm²)', font: { size: 13, weight: 'bold' } },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
+                        },
+                        y: { 
+                            title: { display: true, text: '转动惯量 I (kg·m²)', font: { size: 13, weight: 'bold' } },
+                            grid: { color: 'rgba(0,0,0,0.06)' }
+                        }
+                    }
+                }
+            });
+        } else {
+            chartContainer.style.display = 'none';
+        }
+    }
+
+    // ========== 主计算按钮 ==========
+    document.getElementById('calcBtn').addEventListener('click', function() {
+        // 执行数据检测（只提示偏大/偏小/缺失）
+        runDataValidation();
+
+        const resultContainer = document.getElementById('resultContainer');
+        const geo = getGeometryInCm();
+        const { r_m, R_m, H_m, g, a_avg_cm, b_avg_cm, L_avg_cm } = geo;
+        const m0 = parseFloat(mass0Input.value);
+        const T0_avg = computeAveragePeriodFromTotalTimes(time0Inputs, periodCount0Input);
+        const T1_avg = computeAveragePeriodFromTotalTimes(time1Inputs, periodCount1Input);
+
+        // 空盘D盘平均值（用于理论值）
+        const D_disc_empty_avg = avgFromInputs(DdiscEmptyInputs);
+        // 待测物体质量平均值
+        const m_obj_avg = avgFromInputs(mObjInputs);
+        // 外直径和内直径平均值
+        const d1_avg = avgFromInputs(d1rInputs);
+        const d2_avg = avgFromInputs(d2Inputs);
+
+        let errList = [];
+        if (r_m === null || R_m === null) errList.push("缺少上下盘边长a、b有效数据");
+        if (H_m === null) errList.push("投影法计算H失败，请检查摆长L或边长数据");
+        if (g === null) errList.push("重力加速度g未填写或≤0");
+        if (isNaN(m0) || m0 <= 0) errList.push("空盘质量m0无效");
+        if (D_disc_empty_avg === null || D_disc_empty_avg <= 0) errList.push("空盘下圆盘直径平均值无效（至少填写一个有效值）");
+        if (m_obj_avg === null || m_obj_avg <= 0) errList.push("圆环质量平均值无效（至少填写一个有效值）");
+        if (T0_avg === null || T0_avg <= 0) errList.push("空盘周期T0无效");
+        if (T1_avg === null || T1_avg <= 0) errList.push("负载周期T1无效");
+        if (d1_avg === null || d1_avg <= 0) errList.push("外直径平均值无效（至少填写一个有效值）");
+        if (d2_avg === null || d2_avg <= 0) errList.push("内直径平均值无效（至少填写一个有效值）");
+        if (d2_avg >= d1_avg) errList.push("内直径必须小于外直径");
+
+        if (errList.length > 0) {
+            let html = `<div class="warning">❌ 输入数据存在错误：<ul style="margin:4px 0;padding-left:20px;">`;
+            errList.forEach(e => html += `<li>${e}</li>`);
+            html += `</ul></div>`;
+            resultContainer.innerHTML = html;
+            return;
+        }
+
+        const I0 = computeInertia(m0, g, R_m, r_m, H_m, T0_avg);
+        // 空盘理论值：⅛·m₀·D_盘_avg²
+        const D_disc_m = D_disc_empty_avg * CM_TO_M;
+        const I0_theory = (m0 > 0 && D_disc_m > 0) ? (1/8) * m0 * D_disc_m * D_disc_m : null;
+
+        const I_total = computeInertia(m0 + m_obj_avg, g, R_m, r_m, H_m, T1_avg);
+        const I_obj_exp = (I0 !== null && I_total !== null) ? I_total - I0 : null;
+
+        // 理论值：圆环 J = 0.5 * m * (R1^2 + R2^2)
+        const R1_m = (d1_avg / 2) * CM_TO_M;
+        const R2_m = (d2_avg / 2) * CM_TO_M;
+        const I_obj_theory = 0.5 * m_obj_avg * (R1_m * R1_m + R2_m * R2_m);
+        const theory_formula = `½ · m_环_avg · (R₁² + R₂²) = ½ × ${m_obj_avg} × (${R1_m.toFixed(4)}² + ${R2_m.toFixed(4)}²)`;
+
+        let html = '';
+        html += `<div class="result-area"><div class="sub-header" style="margin-top:0;">📐 几何参数（投影法）</div>`;
+        html += `<div style="background:#fff;border-radius:16px;padding:10px;font-size:0.9rem;">`;
+        html += `a_avg = ${a_avg_cm !== null ? a_avg_cm.toFixed(4) : '--'} cm &nbsp;| b_avg = ${b_avg_cm !== null ? b_avg_cm.toFixed(4) : '--'} cm<br>`;
+        html += `L_avg = ${L_avg_cm !== null ? L_avg_cm.toFixed(4) : '--'} cm &nbsp;| 投影法 H = ${H_m !== null ? (H_m/CM_TO_M).toFixed(4) : '--'} cm<br>`;
+        html += `r = ${r_m !== null ? r_m.toFixed(6) : '--'} m &nbsp;| R = ${R_m !== null ? R_m.toFixed(6) : '--'} m &nbsp;| g = ${g !== null ? g.toFixed(3) : '--'} m/s²`;
+        html += `</div></div>`;
+
+        // 空盘
+        if (I0 !== null) {
+            html += `<div class="result-area" style="margin-top:12px;border-left-color:#3b82f6;">`;
+            html += generateDetailSteps(m0, g, R_m, r_m, H_m, T0_avg, '空盘转动惯量 I₀', `T₀ = ${T0_avg.toFixed(6)} s`);
+            if (I0_theory !== null && I0_theory > 0) {
+                const error_pct = ((I0 - I0_theory) / I0_theory) * 100;
+                const color = Math.abs(error_pct) < 5 ? '#27ae60' : '#c0392b';
+                const sign = error_pct > 0 ? '+' : '';
+                html += `<div style="margin-top:12px;background:#e0f2fe;border-radius:16px;padding:12px;">`;
+                html += `<strong>📊 空盘理论值（自动计算，使用测量的D_盘平均值）</strong><br>`;
+                html += `平均直径 D_盘_avg = ${D_disc_empty_avg.toFixed(4)} cm<br>`;
+                html += `公式：⅛ · m₀ · D_盘² = ⅛ × ${m0} × (${D_disc_m.toFixed(4)})²<br>`;
+                html += `I₀_theory = <strong>${formatNumber(I0_theory)}</strong> kg·m²<br>`;
+                html += `</div>`;
+                html += `<div class="error-box" style="border-color: ${color}; color: ${color};">`;
+                html += `<span class="label">相对误差（空盘）</span>  ${sign}${error_pct.toFixed(2)}%`;
+                html += `</div>`;
+                html += `<div class="final-value" style="background:#dcfce7;color:#166534;margin-top:12px;">`;
+                html += `🎯 空盘：实验 ${formatNumber(I0)} kg·m² &nbsp;| 理论 ${formatNumber(I0_theory)} kg·m² &nbsp;| 误差 ${error_pct.toFixed(2)}%`;
+                html += `</div>`;
+            } else {
+                html += `<div class="warning" style="margin-top:12px; border-left-color: #95a5a6;">💡 空盘理论值无法计算（缺少有效D盘或m0）。</div>`;
+                html += `<div class="final-value" style="background:#dcfce7;color:#166534;margin-top:12px;">🎯 空盘转动惯量 I₀ = ${formatNumber(I0)} kg·m²</div>`;
+            }
+            html += `</div>`;
+        }
+
+        // 总转动惯量
+        if (I_total !== null) {
+            html += `<div class="result-area" style="margin-top:12px;">`;
+            html += generateDetailSteps(m0 + m_obj_avg, g, R_m, r_m, H_m, T1_avg, '总转动惯量 I_total', `T₁ = ${T1_avg.toFixed(6)} s, m_total = ${(m0 + m_obj_avg).toFixed(4)} kg`);
+            html += `</div>`;
+        }
+
+        // 待测物体
+        if (I_obj_exp !== null) {
+            html += `<div class="result-area" style="margin-top:12px;border-left-color:#16a34a;background:#f0fdf4;">`;
+            html += `<div class="formula-detail" style="border-color:#16a34a;">`;
+            html += `<strong>🧪 待测物体实验值</strong> : I_obj = I_total − I₀<br>`;
+            html += `&nbsp;&nbsp;I_total = ${formatNumber(I_total)} kg·m² &nbsp;| I₀ = ${formatNumber(I0)} kg·m²<br>`;
+            html += `⚖️ <strong>I_obj (实验) = ${formatNumber(I_obj_exp)} kg·m²</strong>`;
+            html += `</div>`;
+
+            if (I_obj_theory !== null && I_obj_theory > 0) {
+                const error_pct = ((I_obj_exp - I_obj_theory) / I_obj_theory) * 100;
+                const color = Math.abs(error_pct) < 5 ? '#27ae60' : '#c0392b';
+                const sign = error_pct > 0 ? '+' : '';
+                html += `<div style="margin-top:12px;background:#e0f2fe;border-radius:16px;padding:12px;">`;
+                html += `<strong>📊 理论值（自动计算，使用平均直径）</strong><br>`;
+                html += `平均质量 m_环_avg = ${m_obj_avg.toFixed(4)} kg<br>`;
+                html += `平均外直径 D_外_avg = ${d1_avg.toFixed(4)} cm → 半径 R₁_avg = ${(d1_avg/2).toFixed(4)} cm<br>`;
+                html += `平均内直径 D_内_avg = ${d2_avg.toFixed(4)} cm → 半径 R₂_avg = ${(d2_avg/2).toFixed(4)} cm<br>`;
+                html += `公式：${theory_formula}<br>`;
+                html += `I_theory = <strong>${formatNumber(I_obj_theory)}</strong> kg·m²<br>`;
+                html += `</div>`;
+                html += `<div class="error-box" style="border-color: ${color}; color: ${color};">`;
+                html += `<span class="label">相对误差（待测物体）</span>  ${sign}${error_pct.toFixed(2)}%`;
+                html += `</div>`;
+                html += `<div class="final-value" style="background:#dcfce7;color:#166534;margin-top:12px;">`;
+                html += `🎯 实验 ${formatNumber(I_obj_exp)} kg·m² &nbsp;| 理论 ${formatNumber(I_obj_theory)} kg·m² &nbsp;| 误差 ${error_pct.toFixed(2)}%`;
+                html += `</div>`;
+            } else {
+                html += `<div class="warning" style="margin-top:12px; border-left-color: #95a5a6;">💡 待测物体理论值计算失败，请检查直径数据。</div>`;
+                html += `<div class="final-value" style="background:#dcfce7;color:#166534;margin-top:12px;">🎯 待测物体转动惯量 I_obj = ${formatNumber(I_obj_exp)} kg·m²</div>`;
+            }
+            html += `</div>`;
+        }
+        resultContainer.innerHTML = html;
+    });
+
+    // ========== 重置 ==========
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        document.querySelectorAll('input').forEach(inp => inp.value = '');
+        if (inertiaChart) { inertiaChart.destroy(); inertiaChart = null; }
+        chartContainer.style.display = 'none';
+        parallelResultContainer.innerHTML = '';
+        document.getElementById('resultContainer').innerHTML =
+            `<div style="text-align: center; color: #64748b; padding: 20px;">请输入所有实验数据后点击「计算转动惯量」</div>`;
+        updateAllAverages();
+        updateDdiscEmptyAvg();
+        updateMObjAvg();
+        updateParallelAverages();
+        updateRingRadiusAverages();
+        updateXListBadge();
+        closeModal();
+    });
+
+    calcParallelBtn.addEventListener('click', calcParallelAxis);
+
+    // ========== 二维码 ==========
+    try {
+        const url = window.location.href;
+        document.getElementById('urlHint').textContent = url;
+        new QRCode(document.getElementById('qrcode'), {
+            text: url,
+            width: 120,
+            height: 120,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } catch (e) {
+        document.getElementById('qrcode').innerHTML = '<div style="color:#64748b;">🔗 请使用浏览器打开</div>';
+    }
+
+    initAllInputs();
+    console.log('✅ 三线摆实验仪已启动（空盘D盘独立测量用于理论值计算）');
+</script>
+</body>
+</html>
